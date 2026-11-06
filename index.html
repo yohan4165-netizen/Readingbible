@@ -199,7 +199,7 @@
     document.getElementById('picker').value = ds;
   }
   /* ===== 자료 불러오기: 구글 앱스 스크립트 API + 기기에 저장(오프라인) ===== */
-  var API_URL = 'https://script.google.com/macros/library/d/1QR720VsEdtSqQyMrCL_AJBb0Lgum62yVH1wWGNW4flS7bQoBHwsVQW9R/7';   // ← 앱스 스크립트 웹앱 주소(…/exec)
+  var API_URL = 'https://script.google.com/macros/s/AKfycbyDUJi7nVGko-jWkWF7RBv3oRxoW-wJXd4diBg6Z1fJIDxHgMQKDrsvEkvnqiJxKAeg/exec';   // ← 앱스 스크립트 웹앱 주소(…/exec)
   function store(k, v){ try { if (v === undefined) return JSON.parse(localStorage.getItem(k) || 'null'); localStorage.setItem(k, JSON.stringify(v)); } catch(e){ return null; } }
   function load(ds, cb, quiet){
     if (cache[ds]) return cb(cache[ds]);
