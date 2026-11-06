@@ -97,6 +97,30 @@
   .install .ib{margin-left:auto;flex:none;height:36px;padding:0 14px;border-radius:10px;border:0;background:var(--accent);color:var(--paper);font:700 14px "Noto Sans KR",sans-serif;cursor:pointer}
   .install .ix{flex:none;border:0;background:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px}
   .offline{font-size:12px;color:var(--muted);text-align:center;margin:-8px 0 14px}
+  /* ===== 설치 안내 시트 ===== */
+  .sheet-bg{position:fixed;inset:0;z-index:30;background:rgba(20,14,8,.45);display:none}
+  .sheet-bg.on{display:block}
+  .sheet{position:fixed;left:0;right:0;bottom:0;z-index:31;max-width:520px;margin:0 auto;background:var(--paper);
+         border-radius:22px 22px 0 0;padding:22px 22px calc(22px + env(safe-area-inset-bottom));
+         transform:translateY(calc(100% + 160px));transition:transform .3s ease;box-shadow:0 -8px 30px rgba(0,0,0,.18)}
+  .sheet.on{transform:none}
+  .sheet.lift{bottom:calc(64px + env(safe-area-inset-bottom));border-radius:22px;left:10px;right:10px;padding-bottom:20px}
+  .sheet.top{top:0;bottom:auto;border-radius:0 0 22px 22px;transform:translateY(-105%);padding-top:calc(22px + env(safe-area-inset-top))}
+  .sheet.top.on{transform:none}
+  .sheet h3{margin:0 0 4px;font-size:19px}
+  .sheet .sub{margin:0 0 16px;color:var(--muted);font-size:14px;line-height:1.6}
+  .step{display:flex;align-items:center;gap:14px;padding:12px 0;border-top:1px solid var(--line);font-size:15px;line-height:1.55}
+  .step .n{flex:none;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--paper);font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center}
+  .step .ic{flex:none;width:40px;height:40px;border-radius:10px;background:var(--bg);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:#2f7cf6}
+  .step b{color:var(--accent)}
+  .sheet .row{display:flex;gap:8px;margin-top:14px}
+  .sheet .row .btn{height:44px;white-space:nowrap}
+  .arrow{position:fixed;left:50%;bottom:calc(8px + env(safe-area-inset-bottom));z-index:32;transform:translateX(-50%);display:none;
+         flex-direction:column;align-items:center;color:#fff;font:700 13px "Noto Sans KR",sans-serif;text-shadow:0 1px 4px rgba(0,0,0,.5);pointer-events:none}
+  .arrow.on{display:flex;animation:bob 1.1s ease-in-out infinite}
+  .arrow svg{width:34px;height:34px;filter:drop-shadow(0 1px 3px rgba(0,0,0,.45))}
+  @keyframes bob{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,8px)}}
+  .howto{display:inline-block;margin-top:10px;font-size:12px;color:var(--muted);text-decoration:underline;cursor:pointer;background:none;border:0;padding:0}
   /* 가운데 정렬 */
   .ref, h1 { text-align:center; }
   .verse { text-align:center; }
@@ -128,6 +152,9 @@
   </div>
 </div>
 <div class="toast" id="toast"></div>
+<div class="sheet-bg" id="sheetBg"></div>
+<div class="sheet" id="sheet"></div>
+<div class="arrow" id="arrow"><span>여기 공유 버튼</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v15M5 12l7 7 7-7"/></svg></div>
 
 <script>
   var DAYS = ['일','월','화','수','목','금','토'];
@@ -189,7 +216,7 @@
         return '<a class="chip" href="' + esc(f.url) + '" target="_blank" rel="noopener">⬇ ' + esc(ext || '파일') + '</a>';
       }).join('') + '</div>';
     }
-    h += '<div class="src">출처: <a href="' + esc(r.url) + '" target="_blank" rel="noopener">새중앙침례교회 자유게시판 원문</a></div>';
+    h += '<div class="src">출처: <a href="' + esc(r.url) + '" target="_blank" rel="noopener">새중앙침례교회 자유게시판 원문</a>' + (standalone ? '' : '<br><button class="howto" onclick="showGuide(true)">📲 홈 화면에 앱으로 설치하는 방법</button>') + '</div>';
     m.innerHTML = h;
   }
 
@@ -276,23 +303,102 @@
   };
 
   /* ===== 앱 설치 안내 ===== */
+  var ua = navigator.userAgent;
   var standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  var isIOS = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var isIPad = /ipad/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var isAndroid = /android/i.test(ua);
+  var isKakao = /KAKAOTALK/i.test(ua);
+  var inApp = isKakao || /NAVER\(inapp|BAND\/|Instagram|FBAN|FBAV|Line\/|DaumApps|everytimeApp|whale\/.*inapp/i.test(ua);
+  var isIOSChrome = /CriOS/i.test(ua), isIOSOther = /FxiOS|EdgiOS|NAVER|whale/i.test(ua) && !inApp;
   var ib = document.getElementById('install'), deferred = null;
-  function hideInstall(){ ib.classList.remove('on'); try{ localStorage.setItem('rb_install_hide', '1'); }catch(e){} }
-  var hidden = false; try { hidden = localStorage.getItem('rb_install_hide') === '1'; } catch(e){}
+  var sheet = document.getElementById('sheet'), sheetBg = document.getElementById('sheetBg'), arrow = document.getElementById('arrow');
+  function getFlag(k){ try { return localStorage.getItem(k) === '1'; } catch(e){ return false; } }
+  function setFlag(k){ try { localStorage.setItem(k, '1'); } catch(e){} }
+  function hideInstall(){ ib.classList.remove('on'); setFlag('rb_install_hide'); }
+  var ICON = {
+    share: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5"/><path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/></svg>',
+    plus: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8.5v7M8.5 12h7"/></svg>',
+    more: '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>',
+    ok: '<span style="font:700 15px Noto Sans KR,sans-serif">추가</span>',
+    out: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9"/><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></svg>'
+  };
+  function step(n, icon, html){ return '<div class="step"><span class="n">' + n + '</span><span class="ic">' + icon + '</span><span>' + html + '</span></div>'; }
+  function closeGuide(){ sheet.classList.remove('on'); sheetBg.classList.remove('on'); arrow.classList.remove('on'); }
+  sheetBg.onclick = closeGuide;
+  function openSheet(html, top, showArrow){
+    sheet.className = 'sheet' + (top ? ' top' : '') + (showArrow ? ' lift' : ''); sheet.innerHTML = html;
+    sheetBg.classList.add('on'); requestAnimationFrame(function(){ sheet.classList.add('on'); });
+    if (showArrow) setTimeout(function(){ arrow.classList.add('on'); }, 350);
+  }
+  function inAppGuide(){
+    var url = location.href.split('#')[0];
+    var html = '<h3>브라우저에서 열어 주세요</h3><p class="sub">' + (isKakao ? '카카오톡' : '이 앱') + ' 안에서는 홈 화면에 설치할 수 없어요. ' + (isIOS ? '사파리' : '크롬') + '에서 열면 설치할 수 있어요.</p>';
+    if (isKakao) {
+      html += '<div class="row"><button class="btn primary" id="gOpen">' + (isIOS ? '사파리' : '브라우저') + '로 열기</button></div>';
+    } else if (isAndroid) {
+      html += '<div class="row"><button class="btn primary" id="gOpen">크롬으로 열기</button></div>';
+    } else {
+      html += step(1, ICON.more, '오른쪽 아래(또는 위) <b>··· 메뉴</b>를 누르세요') + step(2, ICON.out, '<b>Safari로 열기</b> 또는 <b>다른 브라우저로 열기</b>를 고르세요');
+      html += '<div class="row"><button class="btn" id="gCopy">주소 복사하기</button><button class="btn primary" id="gClose">알겠어요</button></div>';
+    }
+    openSheet(html, false, false);
+    var o = document.getElementById('gOpen'), c = document.getElementById('gCopy'), x = document.getElementById('gClose');
+    if (o) o.onclick = function(){
+      if (isKakao) location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(url);
+      else location.href = 'intent://' + url.replace(/^https?:\/\//, '') + '#Intent;scheme=https;package=com.android.chrome;end';
+    };
+    if (c) c.onclick = function(){ if (fallbackCopy(url)) toast('주소를 복사했어요. 사파리에 붙여넣어 주세요'); };
+    if (x) x.onclick = closeGuide;
+  }
+  function iosGuide(){
+    var where = isIOSChrome ? '주소창 오른쪽의 <b>공유 버튼</b>' : (isIPad ? '화면 <b>위쪽 오른편</b>의 <b>공유 버튼</b>' : '화면 <b>아래 가운데</b>의 <b>공유 버튼</b>');
+    var html = '<h3>홈 화면에 앱 추가하기</h3><p class="sub">한 번만 해 두면 다음부터 아이콘을 눌러 앱처럼 바로 열 수 있어요.</p>' +
+      step(1, ICON.share, where + '을 누르세요.<br><span style="color:var(--muted);font-size:13px">안 보이면 <b>··· 버튼</b>을 먼저 누르거나 화면을 살짝 위로 올려 주세요.</span>') +
+      step(2, ICON.plus, '메뉴를 아래로 내려 <b>홈 화면에 추가</b>를 누르세요.') +
+      step(3, ICON.ok, '오른쪽 위 <b>추가</b>를 누르면 끝이에요!') +
+      '<div class="row"><button class="btn" id="gNever">그만 보기</button><button class="btn primary" id="gClose">알겠어요</button></div>';
+    openSheet(html, false, !isIPad && !isIOSChrome);
+    document.getElementById('gClose').onclick = closeGuide;
+    document.getElementById('gNever').onclick = function(){ setFlag('rb_guide_never'); closeGuide(); };
+  }
+  function androidGuide(){
+    var html = '<h3>홈 화면에 앱 추가하기</h3><p class="sub">한 번만 해 두면 아이콘을 눌러 앱처럼 바로 열 수 있어요.</p>' +
+      step(1, ICON.more, '오른쪽 위 <b>⋮ 메뉴</b>를 누르세요. (삼성 인터넷은 아래 <b>≡ 메뉴</b>)') +
+      step(2, ICON.plus, '<b>홈 화면에 추가</b> 또는 <b>앱 설치</b>를 누르세요.') +
+      step(3, ICON.ok, '<b>설치</b> 또는 <b>추가</b>를 누르면 끝이에요!') +
+      '<div class="row"><button class="btn primary" id="gClose">알겠어요</button></div>';
+    openSheet(html, false, false);
+    document.getElementById('gClose').onclick = closeGuide;
+  }
+  window.showGuide = function(force){
+    if (inApp) return inAppGuide();
+    if (deferred) { deferred.prompt(); deferred.userChoice.then(function(){ deferred = null; hideInstall(); }); return; }
+    if (isIOS) return iosGuide();
+    if (isAndroid) return androidGuide();
+    if (force) toast('휴대폰에서 열면 홈 화면에 설치할 수 있어요');
+  };
   window.addEventListener('beforeinstallprompt', function(e){
     e.preventDefault(); deferred = e;
-    if (standalone || hidden) return;
+    if (standalone || getFlag('rb_install_hide')) return;
     ib.innerHTML = '<span>📲 <b>홈 화면에 설치</b>하면 앱처럼 바로 열 수 있어요.</span><button class="ib" id="ibgo">설치</button><button class="ix" id="ibx" aria-label="닫기">×</button>';
     ib.classList.add('on');
-    document.getElementById('ibgo').onclick = function(){ deferred.prompt(); deferred.userChoice.then(function(){ hideInstall(); }); };
+    document.getElementById('ibgo').onclick = function(){ window.showGuide(true); };
     document.getElementById('ibx').onclick = hideInstall;
   });
-  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  if (isIOS && !standalone && !hidden) {
-    ib.innerHTML = '<span>📲 아래 <b>공유 버튼(□↑)</b> → <b>홈 화면에 추가</b>를 누르면 앱처럼 설치돼요.</span><button class="ix" id="ibx" aria-label="닫기">×</button>';
-    ib.classList.add('on');
-    document.getElementById('ibx').onclick = hideInstall;
+  window.addEventListener('appinstalled', function(){ hideInstall(); toast('설치됐어요! 홈 화면의 아이콘으로 열어 보세요'); });
+  if (!standalone) {
+    if (inApp) {
+      ib.innerHTML = '<span>📲 ' + (isKakao ? '카카오톡' : '이 앱') + ' 안에서는 설치가 안 돼요. <b>브라우저로 열어</b> 설치해 주세요.</span><button class="ib" id="ibgo">방법 보기</button>';
+      ib.classList.add('on'); document.getElementById('ibgo').onclick = inAppGuide;
+      if (!getFlag('rb_inapp_seen')) { setFlag('rb_inapp_seen'); setTimeout(inAppGuide, 1200); }
+    } else if (isIOS && !getFlag('rb_install_hide')) {
+      ib.innerHTML = '<span>📲 <b>홈 화면에 추가</b>하면 앱처럼 쓸 수 있어요.</span><button class="ib" id="ibgo">방법 보기</button><button class="ix" id="ibx" aria-label="닫기">×</button>';
+      ib.classList.add('on');
+      document.getElementById('ibgo').onclick = iosGuide;
+      document.getElementById('ibx').onclick = hideInstall;
+      if (!getFlag('rb_guide_never') && !getFlag('rb_guide_seen')) { setFlag('rb_guide_seen'); setTimeout(iosGuide, 1500); }
+    }
   }
   if ('serviceWorker' in navigator) { window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); }); }
 
