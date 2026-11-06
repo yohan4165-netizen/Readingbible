@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>오늘의 리딩바이블</title>
+<meta name="description" content="새중앙침례교회 리딩바이블 매일성경통독큐티 자료">
+<meta name="theme-color" content="#9a5b2e">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="리딩바이블">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f6f1e7; --paper:#fffdf8; --ink:#2b2622; --muted:#8a7f72; --line:#e6dccb;
+    --accent:#9a5b2e; --accent-soft:#f3e6d6; --verse:#5a4636;
+    --fs:18px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#17140f; --paper:#201c16; --ink:#ebe3d6; --muted:#9c907f; --line:#3a3229;
+           --accent:#e0a36c; --accent-soft:#2f261c; --verse:#e8d2b8; }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink)}
+  body{font-family:"Noto Sans KR",system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;
+       padding:env(safe-area-inset-top) 0 calc(96px + env(safe-area-inset-bottom))}
+  .wrap{max-width:680px;margin:0 auto;padding:0 18px}
+
+  header{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);
+         backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  .bar{display:flex;align-items:center;justify-content:space-between;height:60px}
+  .nav{width:44px;height:44px;border:0;background:none;color:var(--ink);font-size:22px;border-radius:50%;cursor:pointer}
+  .nav:active{background:var(--accent-soft)}
+  .when{text-align:center;cursor:pointer;user-select:none}
+  .when small{display:block;font-size:11px;letter-spacing:.12em;color:var(--muted)}
+  .when b{font-size:17px;font-weight:700}
+  .when .today-pill{display:inline-block;margin-left:6px;font-size:10px;padding:2px 7px;border-radius:99px;
+                    background:var(--accent);color:var(--paper);vertical-align:2px}
+
+  main{padding-top:22px}
+  .ref{font-family:"Noto Serif KR",serif;font-size:13px;letter-spacing:.14em;color:var(--accent);font-weight:700;margin:0 0 6px}
+  h1{font-family:"Noto Serif KR",serif;font-size:calc(var(--fs) + 9px);line-height:1.35;margin:0 0 22px;font-weight:700;word-break:keep-all}
+
+  .verses{background:var(--paper);border:1px solid var(--line);border-left:4px solid var(--accent);
+          border-radius:14px;padding:20px 22px;margin:0 0 30px}
+  .verse{font-family:"Noto Serif KR",serif;font-size:calc(var(--fs) + 1px);line-height:1.85;color:var(--verse);
+         margin:0;word-break:keep-all}
+  .verse + .verse{margin-top:10px}
+  .verse sup{font-family:"Noto Sans KR",sans-serif;font-size:.62em;color:var(--accent);font-weight:700;margin-right:6px;vertical-align:.45em}
+
+  .body p{font-size:var(--fs);line-height:1.95;margin:0 0 1.35em;word-break:keep-all;text-indent:.6em}
+  .divider{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:12px;letter-spacing:.2em;margin:34px 0 18px}
+  .divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
+
+  .question{background:var(--accent-soft);border-radius:16px;padding:22px 22px 20px;margin:8px 0 26px}
+  .question .tag{font-size:12px;font-weight:700;letter-spacing:.12em;color:var(--accent);margin-bottom:8px}
+  .question p{font-family:"Noto Serif KR",serif;font-size:calc(var(--fs) + 1px);line-height:1.8;margin:0;font-weight:600;word-break:keep-all}
+
+  .files{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}
+  .chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 13px;border-radius:99px;
+        border:1px solid var(--line);color:var(--ink);text-decoration:none;background:var(--paper)}
+  .src{font-size:12px;color:var(--muted);margin-top:14px}
+  .src a{color:var(--muted)}
+
+  .dock{position:fixed;left:0;right:0;bottom:0;padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+        background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+        border-top:1px solid var(--line)}
+  .dock .wrap{display:flex;gap:8px;padding:0 4px}
+  .btn{flex:1;height:46px;border-radius:12px;border:1px solid var(--line);background:var(--paper);color:var(--ink);
+       font:500 15px "Noto Sans KR",sans-serif;cursor:pointer}
+  .btn.primary{flex:2.2;background:var(--accent);border-color:var(--accent);color:var(--paper);font-weight:700}
+  .btn.sm{flex:.8;font-size:14px}
+  .btn:disabled{opacity:.45}
+
+  .state{text-align:center;padding:70px 10px;color:var(--muted);line-height:1.8}
+  .state .big{font-size:40px;margin-bottom:10px}
+  .skel{background:linear-gradient(90deg,var(--line) 25%,var(--paper) 50%,var(--line) 75%);background-size:200% 100%;
+        animation:sh 1.3s infinite;border-radius:8px;height:16px;margin:12px 0}
+  @keyframes sh{to{background-position:-200% 0}}
+
+  .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(20px);opacity:0;
+         background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:99px;font-size:14px;
+         transition:.25s;pointer-events:none;z-index:10;white-space:nowrap}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+  input[type=date]{position:absolute;opacity:0;pointer-events:none;width:0;height:0}
+  .body p { white-space: pre-line; }
+  .install{display:none;margin:0 0 18px;padding:14px 16px;border-radius:14px;background:var(--paper);border:1px solid var(--line);
+           font-size:14px;line-height:1.6;color:var(--ink);align-items:center;gap:10px}
+  .install.on{display:flex}
+  .install b{color:var(--accent)}
+  .install .ib{margin-left:auto;flex:none;height:36px;padding:0 14px;border-radius:10px;border:0;background:var(--accent);color:var(--paper);font:700 14px "Noto Sans KR",sans-serif;cursor:pointer}
+  .install .ix{flex:none;border:0;background:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px}
+  .offline{font-size:12px;color:var(--muted);text-align:center;margin:-8px 0 14px}
+  /* 가운데 정렬 */
+  .ref, h1 { text-align:center; }
+  .verse { text-align:center; }
+  .body p { text-align:center; text-indent:0; }
+  .question { text-align:center; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap bar">
+    <button class="nav" id="prev" aria-label="전날">‹</button>
+    <div class="when" id="when" title="날짜 선택">
+      <small>READING BIBLE</small>
+      <b id="dateLabel">…</b>
+    </div>
+    <button class="nav" id="next" aria-label="다음날">›</button>
+    <input type="date" id="picker">
+  </div>
+</header>
+
+<div class="wrap" style="padding-top:16px"><div class="install" id="install"></div></div>
+<main class="wrap" id="main" style="padding-top:6px"></main>
+
+<div class="dock">
+  <div class="wrap">
+    <button class="btn sm" id="smaller" aria-label="글자 작게">가−</button>
+    <button class="btn sm" id="bigger" aria-label="글자 크게">가+</button>
+    <button class="btn primary" id="copy" disabled>묵상 글 복사</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+  var DAYS = ['일','월','화','수','목','금','토'];
+  var cache = {};
+  var current = null, currentData = null, todayStr = null;
+
+  function pad(n){ return (n < 10 ? '0' : '') + n; }
+  function kstToday(){
+    var d = new Date(Date.now() + (new Date().getTimezoneOffset() + 540) * 60000);
+    return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+  }
+  function shift(ds, n){
+    var p = ds.split('-').map(Number), d = new Date(p[0], p[1]-1, p[2] + n);
+    return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+  }
+  function human(ds){
+    var p = ds.split('-').map(Number), d = new Date(p[0], p[1]-1, p[2]);
+    return p[1] + '월 ' + p[2] + '일 ' + DAYS[d.getDay()] + '요일';
+  }
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+  /* 글자 크기 */
+  var fs = 18;
+  try { fs = Number(localStorage.getItem('rb_fs')) || 18; } catch(e){}
+  function applyFs(){ document.documentElement.style.setProperty('--fs', fs + 'px'); try{ localStorage.setItem('rb_fs', fs); }catch(e){} }
+  applyFs();
+  document.getElementById('smaller').onclick = function(){ fs = Math.max(14, fs - 1); applyFs(); };
+  document.getElementById('bigger').onclick  = function(){ fs = Math.min(26, fs + 1); applyFs(); };
+
+  /* 화면 그리기 */
+  function renderLoading(){
+    document.getElementById('main').innerHTML =
+      '<div class="skel" style="width:30%"></div><div class="skel" style="height:30px;width:70%"></div>' +
+      '<div class="skel" style="height:90px;margin:22px 0 30px"></div>' +
+      Array(8).join('<div class="skel"></div>');
+  }
+  function render(r){
+    var m = document.getElementById('main');
+    currentData = r && r.ok ? r : null;
+    document.getElementById('copy').disabled = !currentData;
+    if (!r || !r.ok){
+      m.innerHTML = '<div class="state"><div class="big">📖</div>' + esc(r ? r.message : '자료를 불러오지 못했어요.') +
+        '<br><br><button class="btn" style="max-width:200px" onclick="go(todayStr)">오늘 자료 보기</button></div>';
+      return;
+    }
+    var h = (r.offline ? '<p class="offline">오프라인 — 저장해 둔 자료를 보여드려요</p>' : '') + '<p class="ref">오늘의 리딩바이블</p><h1>' + esc(r.passage || r.title) + '</h1>';
+    if (r.verses.length){
+      h += '<section class="verses">' + r.verses.map(function(v){
+        return '<p class="verse"><sup>' + esc(v.n) + '</sup>' + esc(v.t) + '</p>';
+      }).join('') + '</section>';
+    }
+    h += '<section class="body">' + r.body.map(function(p){ return '<p>' + esc(p) + '</p>'; }).join('') + '</section>';
+    if (r.question){
+      h += '<div class="divider">묵 상</div><section class="question"><div class="tag">오늘의 질문</div><p>' + esc(r.question) + '</p></section>';
+    }
+    if (r.files.length){
+      h += '<div class="files">' + r.files.map(function(f){
+        var ext = (f.name.split('.').pop() || '').toUpperCase();
+        return '<a class="chip" href="' + esc(f.url) + '" target="_blank" rel="noopener">⬇ ' + esc(ext || '파일') + '</a>';
+      }).join('') + '</div>';
+    }
+    h += '<div class="src">출처: <a href="' + esc(r.url) + '" target="_blank" rel="noopener">새중앙침례교회 자유게시판 원문</a></div>';
+    m.innerHTML = h;
+  }
+
+  /* 날짜 이동 */
+  function setHeader(ds){
+    document.getElementById('dateLabel').innerHTML = esc(human(ds)) + (ds === todayStr ? '<span class="today-pill">오늘</span>' : '');
+    document.getElementById('picker').value = ds;
+  }
+  /* ===== 자료 불러오기: 구글 앱스 스크립트 API + 기기에 저장(오프라인) ===== */
+  var API_URL = 'https://script.google.com/macros/library/d/1QR720VsEdtSqQyMrCL_AJBb0Lgum62yVH1wWGNW4flS7bQoBHwsVQW9R/7';   // ← 앱스 스크립트 웹앱 주소(…/exec)
+  function store(k, v){ try { if (v === undefined) return JSON.parse(localStorage.getItem(k) || 'null'); localStorage.setItem(k, JSON.stringify(v)); } catch(e){ return null; } }
+  function load(ds, cb, quiet){
+    if (cache[ds]) return cb(cache[ds]);
+    var saved = store('rb_day_' + ds);
+    fetch(API_URL + '?api=day&d=' + encodeURIComponent(ds), { redirect:'follow' })
+      .then(function(r){ if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function(r){ if (r && r.ok) { cache[ds] = r; store('rb_day_' + ds, r); } cb(r); })
+      .catch(function(){
+        if (saved) { saved.offline = true; cache[ds] = saved; return cb(saved); }
+        cb({ ok:false, message:'인터넷에 연결되어 있지 않거나 자료를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.' });
+      });
+  }
+  function go(ds){
+    current = ds; setHeader(ds); window.scrollTo(0, 0);
+    if (!cache[ds]) renderLoading();
+    load(ds, function(r){
+      if (current !== ds) return;
+      render(r);
+      [shift(ds, 1), shift(ds, -1)].forEach(function(n){ load(n, function(){}); }); // 앞뒤 날짜 미리 받아두기
+    });
+  }
+  document.getElementById('prev').onclick = function(){ go(shift(current, -1)); };
+  document.getElementById('next').onclick = function(){ go(shift(current, 1)); };
+  document.getElementById('when').onclick = function(){
+    var p = document.getElementById('picker');
+    if (p.showPicker) { try { p.showPicker(); return; } catch(e){} }
+    go(todayStr);
+  };
+  document.getElementById('picker').onchange = function(e){ if (e.target.value) go(e.target.value); };
+
+  /* 좌우 스와이프로 날짜 이동 */
+  var sx = null, sy = null;
+  document.addEventListener('touchstart', function(e){ sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, {passive:true});
+  document.addEventListener('touchend', function(e){
+    if (sx === null) return;
+    var dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+    if (Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 2) go(shift(current, dx < 0 ? 1 : -1));
+    sx = null;
+  }, {passive:true});
+
+  /* 복사용 글: 문단마다 빈 줄, 괄호 밖 구절 범위의 "-"는 "절에서 "로 */
+  function convertRange(s){
+    return s.split(/(\([^)]*\))/).map(function(seg){
+      return seg.charAt(0) === '(' ? seg : seg.replace(/(\d+)\s*[-–~]\s*(\d+)/g, '$1절에서 $2');
+    }).join('');
+  }
+  function postText(r){
+    var lines = [];
+    lines.push(r.title || ('리딩바이블 (' + r.label + ')'));
+    if (r.passage) lines.push('오늘의 리딩바이블: ' + r.passage);
+    if (r.verses.length) lines.push(r.verses.map(function(v){ return v.n + '. ' + v.t; }).join('\n'));
+    r.body.forEach(function(p){ lines.push(p); });
+    if (r.question) lines.push('오늘의 질문: ' + r.question);
+    return convertRange(lines.join('\n\n'));
+  }
+  function toast(msg){
+    var t = document.getElementById('toast'); t.textContent = msg; t.classList.add('on');
+    clearTimeout(toast._t); toast._t = setTimeout(function(){ t.classList.remove('on'); }, 1800);
+  }
+  function fallbackCopy(text){
+    var ta = document.createElement('textarea'); ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta);
+    ta.select(); ta.setSelectionRange(0, text.length);
+    var ok = false; try { ok = document.execCommand('copy'); } catch(e){}
+    document.body.removeChild(ta); return ok;
+  }
+  document.getElementById('copy').onclick = function(){
+    if (!currentData) return;
+    var text = postText(currentData);
+    var done = function(){ toast('복사했어요. 붙여넣기 하면 돼요 ✓'); };
+    if (fallbackCopy(text)) return done();
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, function(){ toast('복사가 막혔어요. 원문에서 복사해 주세요.'); });
+    else toast('복사가 막혔어요. 원문에서 복사해 주세요.');
+  };
+
+  /* ===== 앱 설치 안내 ===== */
+  var standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  var ib = document.getElementById('install'), deferred = null;
+  function hideInstall(){ ib.classList.remove('on'); try{ localStorage.setItem('rb_install_hide', '1'); }catch(e){} }
+  var hidden = false; try { hidden = localStorage.getItem('rb_install_hide') === '1'; } catch(e){}
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault(); deferred = e;
+    if (standalone || hidden) return;
+    ib.innerHTML = '<span>📲 <b>홈 화면에 설치</b>하면 앱처럼 바로 열 수 있어요.</span><button class="ib" id="ibgo">설치</button><button class="ix" id="ibx" aria-label="닫기">×</button>';
+    ib.classList.add('on');
+    document.getElementById('ibgo').onclick = function(){ deferred.prompt(); deferred.userChoice.then(function(){ hideInstall(); }); };
+    document.getElementById('ibx').onclick = hideInstall;
+  });
+  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  if (isIOS && !standalone && !hidden) {
+    ib.innerHTML = '<span>📲 아래 <b>공유 버튼(□↑)</b> → <b>홈 화면에 추가</b>를 누르면 앱처럼 설치돼요.</span><button class="ix" id="ibx" aria-label="닫기">×</button>';
+    ib.classList.add('on');
+    document.getElementById('ibx').onclick = hideInstall;
+  }
+  if ('serviceWorker' in navigator) { window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); }); }
+
+  todayStr = kstToday();
+  go(todayStr);
+</script>
+</body>
+</html>
