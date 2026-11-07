@@ -136,8 +136,11 @@
   /* 가운데 정렬 */
   .ref, h1 { text-align:center; }
   .verse { text-align:center; }
-  .body p { text-align:center; text-indent:0; }
+  .body p { text-align:justify; text-justify:inter-character; text-indent:.6em; word-break:break-all; line-break:strict; }
   .question { text-align:center; }
+  /* ===== 글꼴: 맑은 고딕 / 본문 좌우 여백 ===== */
+  body, body *:not(svg):not(path) { font-family:"Malgun Gothic","맑은 고딕","Apple SD Gothic Neo","Noto Sans KR",sans-serif !important; }
+  main.wrap { padding-left:30px; padding-right:30px; max-width:640px; }
 </style>
 </head>
 <body>
