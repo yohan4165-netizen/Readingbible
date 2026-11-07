@@ -156,6 +156,27 @@
   body.chapter #hlbar{display:none !important}
   .gae{display:flex;width:fit-content;align-items:center;gap:4px;margin:-8px auto 22px;padding:8px 14px;border-radius:99px;background:var(--accent-soft);color:var(--accent);font-size:14px;font-weight:700;text-decoration:none}
   .gae.wide{width:auto;justify-content:center;margin:4px 0 14px;height:44px;border-radius:12px}
+  /* ===== 로그인 + 나의 묵상 ===== */
+  .note{margin:0 0 26px;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:18px 18px 12px}
+  .note .t{font-size:12px;font-weight:700;letter-spacing:.12em;color:var(--accent);margin-bottom:10px;text-align:center}
+  .note textarea{display:block;width:100%;min-height:130px;resize:none;overflow:hidden;border:0;outline:0;background:transparent;color:var(--ink);font-size:var(--fs);line-height:1.85;padding:0}
+  .note textarea::placeholder{color:var(--muted)}
+  .note .nf{display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);font-size:12px;color:var(--muted)}
+  .note .nf .sp{flex:1}
+  .note .nf button{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:99px;padding:7px 13px;font-size:12px;cursor:pointer}
+  .note .nf button.save{background:var(--accent);border-color:var(--accent);color:var(--paper);font-weight:700}
+  .note .who{display:flex;align-items:center;justify-content:center;gap:8px;font-size:12px;color:var(--muted);margin:-4px 0 10px}
+  .note .who button{border:0;background:none;color:var(--muted);text-decoration:underline;font-size:12px;cursor:pointer;padding:0}
+  .note.login{text-align:center;padding:20px 18px}
+  .note.login p{margin:0 0 14px;font-size:14px;line-height:1.7;color:var(--ink)}
+  .note .lf{display:flex;flex-direction:column;gap:8px;max-width:300px;margin:0 auto}
+  .note .lf input{height:46px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:0 14px;font-size:16px;outline:0}
+  .note .lf input:focus{border-color:var(--accent)}
+  .note .lb{display:flex;gap:8px;max-width:300px;margin:10px auto 0}
+  .note .lb .btn{height:44px;font-size:14px;white-space:nowrap}
+  .note .lmsg{min-height:18px;margin-top:8px;font-size:13px;color:var(--accent)}
+  .note .priv{margin:12px 0 0;font-size:11px;line-height:1.6;color:var(--muted)}
+  body.typing #hlbar{display:none !important}
   /* 가운데 정렬 */
   .ref, h1 { text-align:center; }
   .verse { text-align:justify; text-justify:inter-character; word-break:keep-all; overflow-wrap:break-word; line-break:strict; font-size:var(--fs) !important; }
@@ -581,6 +602,8 @@
     var sel = window.getSelection();
     if (sel && !sel.isCollapsed && sel.rangeCount) {
       var r = sel.getRangeAt(0), main = document.getElementById('main');
+      var ae = document.activeElement;
+      if (ae && ae.tagName === 'TEXTAREA') return;
       if (main.contains(r.commonAncestorContainer)) { lastRange = r.cloneRange(); activeMark = null; }
     } else { setTimeout(function(){ var s = window.getSelection(); if (!s || s.isCollapsed) lastRange = null; showBar(); }, 250); return; }
     showBar();
@@ -701,6 +724,115 @@
   };
   /* 처음 열 때 주소에 #ch-… 가 있으면 바로 장 화면 */
   if (/^#ch-/.test(location.hash)) setTimeout(route, 0);
+})();
+</script>
+
+
+<script>
+/* ===================== 로그인(이름 + PIN) + 나의 묵상 (구글 시트 저장) ===================== */
+(function(){
+  var PRIVACY = '작성한 묵상은 관리자의 구글 시트에 저장되며, 관리자가 볼 수 있어요. PIN은 암호화되어 관리자도 알 수 없어요.';
+  var user = null, lastR = null;
+  try { var u = JSON.parse(localStorage.getItem('rb_user') || 'null'); if (u && u.token && u.exp > Date.now()) user = u; } catch(e){}
+  function saveUser(u){ user = u; try { localStorage.setItem('rb_user', JSON.stringify(u)); } catch(e){} }
+  function signOut(){ user = null; try { localStorage.removeItem('rb_user'); } catch(e){} remount(); toast('로그아웃했어요'); }
+
+  function api(body){
+    return fetch(API_URL, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) })
+      .then(function(r){ return r.json(); });
+  }
+  function label(ds){ var p = ds.split('-').map(Number); return p[0] + '년 ' + p[1] + '월 ' + p[2] + '일'; }
+  function grow(t){ t.style.height = 'auto'; t.style.height = Math.max(130, t.scrollHeight) + 'px'; }
+
+  function loginBox(sec){
+    sec.className = 'note login';
+    sec.innerHTML = '<div class="t">나의 묵상</div><p>로그인하면 오늘의 묵상을 적고<br>저장해 둘 수 있어요.</p>' +
+      '<div class="lf"><input id="lid" type="text" maxlength="20" placeholder="이름 (예: 임요한)" autocomplete="username">' +
+      '<input id="lpin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="PIN 숫자 4~6자리" autocomplete="current-password"></div>' +
+      '<div class="lb"><button type="button" class="btn primary" id="lgo">로그인</button><button type="button" class="btn" id="lnew">처음이면 가입</button></div>' +
+      '<div class="lmsg" id="lmsg"></div><div class="priv">' + PRIVACY + '</div>';
+    var id = sec.querySelector('#lid'), pin = sec.querySelector('#lpin'), msg = sec.querySelector('#lmsg');
+    function go2(action){
+      var v = id.value.trim(), p = pin.value.trim();
+      if (!v) { msg.textContent = '이름을 입력해 주세요'; id.focus(); return; }
+      if (!/^\d{4,6}$/.test(p)) { msg.textContent = 'PIN은 숫자 4~6자리로 입력해 주세요'; pin.focus(); return; }
+      msg.textContent = action === 'register' ? '가입하는 중…' : '로그인하는 중…';
+      sec.querySelectorAll('button').forEach(function(b){ b.disabled = true; });
+      api({ action: action, id: v, pin: p }).then(function(j){
+        sec.querySelectorAll('button').forEach(function(b){ b.disabled = false; });
+        if (j && j.ok) { saveUser({ id: j.id, token: j.token, exp: j.exp }); toast(j.id + '님, ' + (action === 'register' ? '가입을 환영해요' : '환영해요')); remount(); }
+        else msg.textContent = '⚠ ' + ((j && j.message) || '잠시 후 다시 시도해 주세요');
+      }).catch(function(){ sec.querySelectorAll('button').forEach(function(b){ b.disabled = false; }); msg.textContent = '⚠ 인터넷 연결을 확인해 주세요'; });
+    }
+    sec.querySelector('#lgo').onclick = function(){ go2('login'); };
+    sec.querySelector('#lnew').onclick = function(){ go2('register'); };
+    pin.addEventListener('keydown', function(e){ if (e.key === 'Enter') go2('login'); });
+  }
+
+  function mount(r){
+    lastR = r;
+    var old = document.querySelector('#main .note'); if (old) old.remove();
+    var anchor = document.querySelector('#main .question') || document.querySelector('#main .body');
+    if (!anchor) return;
+    var sec = document.createElement('section');
+    anchor.insertAdjacentElement('afterend', sec);
+    if (!user || user.exp < Date.now()) { user = null; return loginBox(sec); }
+
+    var ds = current;
+    sec.className = 'note';
+    sec.innerHTML = '<div class="t">나의 묵상</div>' +
+      '<div class="who">' + esc(user.id) + ' 님 · <button type="button" id="gout">로그아웃</button></div>' +
+      '<textarea id="note" rows="5" placeholder="오늘 말씀과 질문을 묵상하며 떠오른 생각, 기도, 다짐을 적어 보세요." disabled></textarea>' +
+      '<div class="nf"><span id="noteState">불러오는 중…</span><span class="sp"></span><button type="button" id="noteCopy">복사</button><button type="button" class="save" id="noteSave">저장</button></div>' +
+      '<div class="priv">' + PRIVACY + '</div>';
+    var t = sec.querySelector('#note'), st = sec.querySelector('#noteState'), saved = '', busy = false;
+    sec.querySelector('#gout').onclick = signOut;
+    function state(){
+      if (busy) return;
+      var n = t.value.length;
+      st.textContent = t.value === saved ? (n ? n.toLocaleString() + '자 · 저장됨 ✓' : '아직 작성하지 않았어요') : n.toLocaleString() + '자 · 저장 안 됨';
+    }
+    function expired(j){ if (j && j.relogin) { signOut(); toast('다시 로그인해 주세요'); return true; } return false; }
+    function save(quiet){
+      if (busy || t.value === saved || !user) return;
+      busy = true; st.textContent = '저장 중…';
+      var text = t.value;
+      api({ action: 'note_save', token: user.token, date: ds, text: text }).then(function(j){
+        busy = false;
+        if (expired(j)) return;
+        if (j && j.ok) { saved = text; state(); if (!quiet) toast('구글 시트에 저장했어요 ✓'); }
+        else st.textContent = '⚠ 저장하지 못했어요 (' + ((j && j.message) || '오류') + ')';
+      }).catch(function(){ busy = false; st.textContent = '⚠ 인터넷 연결을 확인해 주세요'; });
+    }
+    api({ action: 'note_get', token: user.token, date: ds }).then(function(j){
+      if (current !== ds || expired(j)) return;
+      t.disabled = false;
+      if (j && j.ok) { saved = j.text || ''; t.value = saved; grow(t); state(); }
+      else st.textContent = '⚠ 불러오지 못했어요 (' + ((j && j.message) || '오류') + ')';
+    }).catch(function(){ t.disabled = false; st.textContent = '⚠ 인터넷 연결을 확인해 주세요'; });
+    var idle = null;
+    t.addEventListener('input', function(){ grow(t); state(); clearTimeout(idle); idle = setTimeout(function(){ save(true); }, 4000); });
+    t.addEventListener('focus', function(){ document.body.classList.add('typing'); });
+    t.addEventListener('blur', function(){ document.body.classList.remove('typing'); save(true); });
+    sec.querySelector('#noteSave').onclick = function(){ clearTimeout(idle); save(false); };
+    sec.querySelector('#noteCopy').onclick = function(){
+      if (!t.value.trim()) return toast('아직 적은 묵상이 없어요');
+      var head = '리딩바이블 (' + label(ds) + ')' + (r.passage ? '\n' + r.passage : '');
+      var out = convertRange(head) + '\n\n' + (r.question ? '오늘의 질문: ' + r.question + '\n\n' : '') + '나의 묵상:\n' + t.value.trim();
+      if (fallbackCopy(out)) toast('내 묵상을 복사했어요 ✓');
+      else if (navigator.clipboard) navigator.clipboard.writeText(out).then(function(){ toast('내 묵상을 복사했어요 ✓'); });
+    };
+    window.__rbNoteFlush = function(){ clearTimeout(idle); save(true); };
+  }
+  function remount(){ if (lastR && document.querySelector('#main .body')) mount(lastR); }
+
+  var _render3 = render;
+  render = function(r){
+    if (window.__rbNoteFlush) { try { window.__rbNoteFlush(); } catch(e){} window.__rbNoteFlush = null; }
+    _render3(r);
+    if (r && r.ok && document.querySelector('#main .body')) mount(r);
+  };
+  window.addEventListener('pagehide', function(){ if (window.__rbNoteFlush) window.__rbNoteFlush(); });
 })();
 </script>
 </body>
