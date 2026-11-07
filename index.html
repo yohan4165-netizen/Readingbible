@@ -133,6 +133,16 @@
   .vcard small{font-size:12px;font-weight:700;color:var(--accent)}
   .vcard b{font-size:14px;font-weight:500;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   .vcard.pl .th{display:flex;align-items:center;justify-content:center;background:var(--accent-soft);color:var(--accent);font-size:26px}
+  .toast{bottom:calc(132px + env(safe-area-inset-bottom)) !important}
+  /* ===== 하이라이트 ===== */
+  mark.hl{background:rgba(255,206,84,.55);color:inherit;border-radius:3px;padding:1px 0;box-decoration-break:clone;-webkit-box-decoration-break:clone;cursor:pointer}
+  @media (prefers-color-scheme: dark){ mark.hl{background:rgba(224,163,108,.45)} }
+  .hlbar{position:fixed;left:0;right:0;bottom:calc(76px + env(safe-area-inset-bottom));z-index:12;display:none;justify-content:center;gap:8px;padding:0 14px;pointer-events:none}
+  .hlbar.on{display:flex}
+  .hlbar button{pointer-events:auto;height:42px;padding:0 16px;border-radius:99px;border:0;font:700 14px "Malgun Gothic","맑은 고딕","Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+                box-shadow:0 4px 14px rgba(0,0,0,.18);cursor:pointer;-webkit-user-select:none;user-select:none}
+  .hlbar .y{background:#ffce54;color:#3b2a10}
+  .hlbar .d{background:var(--paper);color:var(--ink);border:1px solid var(--line)}
   /* 가운데 정렬 */
   .ref, h1 { text-align:center; }
   .verse { text-align:center; }
@@ -167,6 +177,7 @@
   </div>
 </div>
 <div class="toast" id="toast"></div>
+<div class="hlbar" id="hlbar"></div>
 <div class="sheet-bg" id="sheetBg"></div>
 <div class="sheet" id="sheet"></div>
 <div class="arrow" id="arrow"><span>여기 공유 버튼</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v15M5 12l7 7 7-7"/></svg></div>
@@ -293,6 +304,7 @@
   document.addEventListener('touchstart', function(e){ sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, {passive:true});
   document.addEventListener('touchend', function(e){
     if (sx === null) return;
+    var _sel = window.getSelection(); if (_sel && !_sel.isCollapsed) { sx = null; return; }
     var dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
     if (Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 2) go(shift(current, dx < 0 ? 1 : -1));
     sx = null;
@@ -435,6 +447,140 @@
 
   todayStr = kstToday();
   go(todayStr);
+</script>
+
+<script>
+/* ===================== 하이라이트 ===================== */
+(function(){
+  var bar = document.getElementById('hlbar'), lastRange = null, activeMark = null;
+  function key(){ return 'rb_hl_' + current; }
+  function load(){ try { return JSON.parse(localStorage.getItem(key()) || '[]'); } catch(e){ return []; } }
+  function save(list){ try { localStorage.setItem(key(), JSON.stringify(list)); } catch(e){} }
+
+  /* 하이라이트할 수 있는 칸: 말씀(v), 해설 문단(b), 오늘의 질문(q) */
+  function containers(){
+    var out = [];
+    document.querySelectorAll('#main .verse').forEach(function(p, i){
+      var span = p.querySelector('.hlc');
+      if (!span) {
+        span = document.createElement('span'); span.className = 'hlc';
+        Array.prototype.slice.call(p.childNodes).forEach(function(n){ if (!(n.nodeType === 1 && n.tagName === 'SUP')) span.appendChild(n); });
+        p.appendChild(span);
+      }
+      span.dataset.k = 'v' + i; out.push(span);
+    });
+    document.querySelectorAll('#main .body p').forEach(function(p, i){ p.dataset.k = 'b' + i; out.push(p); });
+    var q = document.querySelector('#main .question p'); if (q) { q.dataset.k = 'q'; out.push(q); }
+    return out;
+  }
+  function esc2(t){ return t.replace(/[&<>]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]; }); }
+  function paint(){
+    var list = load(), byK = {};
+    list.forEach(function(h, i){ (byK[h.k] = byK[h.k] || []).push({ s:h.s, e:h.e, i:i }); });
+    containers().forEach(function(c){
+      var text = c.textContent, hs = (byK[c.dataset.k] || []).sort(function(a, b){ return a.s - b.s; });
+      var html = '', pos = 0;
+      hs.forEach(function(h){
+        var s0 = Math.max(h.s, pos), e0 = Math.min(h.e, text.length);
+        if (e0 <= s0) return;
+        html += esc2(text.slice(pos, s0)) + '<mark class="hl" data-i="' + h.i + '">' + esc2(text.slice(s0, e0)) + '</mark>';
+        pos = e0;
+      });
+      html += esc2(text.slice(pos));
+      c.innerHTML = html;
+    });
+    showBar();
+  }
+  function offsetIn(c, node, off){
+    var r = document.createRange(); r.selectNodeContents(c); r.setEnd(node, off); return r.toString().length;
+  }
+  function addFromRange(range){
+    var list = load(), added = 0;
+    containers().forEach(function(c){
+      if (!range.intersectsNode(c)) return;
+      var len = c.textContent.length;
+      var s = c.contains(range.startContainer) ? offsetIn(c, range.startContainer, range.startOffset) : 0;
+      var e = c.contains(range.endContainer) ? offsetIn(c, range.endContainer, range.endOffset) : len;
+      var t = c.textContent;
+      while (s < e && /\s/.test(t[s])) s++;
+      while (e > s && /\s/.test(t[e - 1])) e--;
+      if (e <= s) return;
+      /* 겹치는 하이라이트는 하나로 합치기 */
+      list = list.filter(function(h){
+        if (h.k !== c.dataset.k || h.e < s || h.s > e) return true;
+        s = Math.min(s, h.s); e = Math.max(e, h.e); return false;
+      });
+      list.push({ k: c.dataset.k, s: s, e: e });
+      added++;
+    });
+    if (added) { save(list); paint(); toast('하이라이트했어요 🖍'); }
+  }
+  function order(k){ var t = k[0], n = Number(k.slice(1)) || 0; return ({ v:0, b:1000, q:2000 })[t] + n; }
+  function copyHighlights(){
+    var list = load().slice().sort(function(a, b){ return order(a.k) - order(b.k) || a.s - b.s; });
+    if (!list.length) return;
+    var texts = {}; containers().forEach(function(c){ texts[c.dataset.k] = c.textContent; });
+    var parts = list.map(function(h){ return (texts[h.k] || '').slice(h.s, h.e); }).filter(Boolean);
+    var p = current.split('-').map(Number);
+    var head = '리딩바이블 (' + p[0] + '년 ' + p[1] + '월 ' + p[2] + '일)';
+    if (currentData && currentData.passage) head += '\n' + currentData.passage;
+    var out = convertRange(head + '\n\n' + parts.join('\n\n'));
+    if (fallbackCopy(out)) toast('하이라이트 ' + parts.length + '개를 복사했어요 ✓');
+    else if (navigator.clipboard) navigator.clipboard.writeText(out).then(function(){ toast('하이라이트 ' + parts.length + '개를 복사했어요 ✓'); });
+  }
+  function btn(cls, label, fn){
+    var b = document.createElement('button'); b.className = cls; b.textContent = label;
+    /* 버튼을 눌러도 선택이 풀리지 않도록 */
+    b.addEventListener('mousedown', function(e){ e.preventDefault(); });
+    b.addEventListener('touchstart', function(e){ e.preventDefault(); fn(); }, { passive:false });
+    b.addEventListener('click', fn);
+    return b;
+  }
+  function showBar(){
+    bar.innerHTML = '';
+    var sel = window.getSelection(), hasSel = sel && !sel.isCollapsed && lastRange;
+    if (activeMark) {
+      var i = Number(activeMark.dataset.i);
+      bar.appendChild(btn('d', '이 하이라이트 지우기', function(){
+        var list = load(); list.splice(i, 1); save(list); activeMark = null; paint(); toast('지웠어요');
+      }));
+      bar.appendChild(btn('d', '취소', function(){ activeMark = null; showBar(); }));
+    } else if (hasSel) {
+      bar.appendChild(btn('y', '🖍 하이라이트', function(){
+        var r = lastRange; lastRange = null;
+        try { window.getSelection().removeAllRanges(); } catch(e){}
+        if (r) addFromRange(r);
+      }));
+    } else {
+      var n = currentData ? load().length : 0;
+      if (n) {
+        bar.appendChild(btn('y', '🖍 하이라이트만 복사 (' + n + ')', copyHighlights));
+        bar.appendChild(btn('d', '모두 지우기', function(){
+          if (bar.dataset.confirm === '1') { save([]); bar.dataset.confirm = ''; paint(); toast('이 날짜 하이라이트를 모두 지웠어요'); }
+          else { bar.dataset.confirm = '1'; toast('한 번 더 누르면 모두 지워져요'); setTimeout(function(){ bar.dataset.confirm = ''; }, 2500); }
+        }));
+      }
+    }
+    bar.classList.toggle('on', bar.children.length > 0);
+  }
+  document.addEventListener('selectionchange', function(){
+    var sel = window.getSelection();
+    if (sel && !sel.isCollapsed && sel.rangeCount) {
+      var r = sel.getRangeAt(0), main = document.getElementById('main');
+      if (main.contains(r.commonAncestorContainer)) { lastRange = r.cloneRange(); activeMark = null; }
+    } else { setTimeout(function(){ var s = window.getSelection(); if (!s || s.isCollapsed) lastRange = null; showBar(); }, 250); return; }
+    showBar();
+  });
+  document.getElementById('main').addEventListener('click', function(e){
+    var m = e.target.closest && e.target.closest('mark.hl');
+    var sel = window.getSelection();
+    if (m && (!sel || sel.isCollapsed)) { activeMark = m; showBar(); }
+    else if (activeMark) { activeMark = null; showBar(); }
+  });
+  /* 화면이 새로 그려질 때마다 하이라이트 다시 칠하기 */
+  var _render = render;
+  render = function(r){ activeMark = null; lastRange = null; _render(r); if (r && r.ok) paint(); else showBar(); };
+})();
 </script>
 </body>
 </html>
