@@ -143,6 +143,19 @@
                 box-shadow:0 4px 14px rgba(0,0,0,.18);cursor:pointer;-webkit-user-select:none;user-select:none}
   .hlbar .y{background:#ffce54;color:#3b2a10}
   .hlbar .d{background:var(--paper);color:var(--ink);border:1px solid var(--line)}
+  /* ===== 장 전체 보기 ===== */
+  h1.linked{cursor:pointer}
+  h1.linked .more{display:block;text-decoration:none;margin-top:6px;font-size:13px;font-weight:500;color:var(--accent);letter-spacing:.02em}
+  .chap-back{display:inline-flex;align-items:center;gap:4px;margin:0 0 14px;padding:8px 14px;border-radius:99px;border:1px solid var(--line);background:var(--paper);color:var(--ink);font-size:14px;cursor:pointer}
+  .cv{font-size:calc(var(--fs) + 1px);line-height:1.9;margin:0 0 .55em;text-align:justify;text-justify:inter-character;word-break:keep-all;overflow-wrap:break-word}
+  .cv sup{font-size:.62em;color:var(--accent);font-weight:700;margin-right:6px;vertical-align:.45em}
+  .cv.on{background:var(--accent-soft);border-radius:10px;padding:6px 12px;margin-left:-12px;margin-right:-12px}
+  .chap-nav{display:flex;justify-content:space-between;gap:10px;margin:26px 0 8px}
+  .chap-nav button{flex:1;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--paper);color:var(--ink);font-size:15px;cursor:pointer}
+  .chap-nav button:disabled{opacity:.35}
+  body.chapter #hlbar{display:none !important}
+  .gae{display:flex;width:fit-content;align-items:center;gap:4px;margin:-8px auto 22px;padding:8px 14px;border-radius:99px;background:var(--accent-soft);color:var(--accent);font-size:14px;font-weight:700;text-decoration:none}
+  .gae.wide{width:auto;justify-content:center;margin:4px 0 14px;height:44px;border-radius:12px}
   /* 가운데 정렬 */
   .ref, h1 { text-align:center; }
   .verse { text-align:center; }
@@ -306,7 +319,7 @@
     if (sx === null) return;
     var _sel = window.getSelection(); if (_sel && !_sel.isCollapsed) { sx = null; return; }
     var dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
-    if (Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 2) go(shift(current, dx < 0 ? 1 : -1));
+    if (Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 2) { if (!(window.rbChapterStep && window.rbChapterStep(dx < 0 ? 1 : -1))) go(shift(current, dx < 0 ? 1 : -1)); }
     sx = null;
   }, {passive:true});
 
@@ -580,6 +593,113 @@
   /* 화면이 새로 그려질 때마다 하이라이트 다시 칠하기 */
   var _render = render;
   render = function(r){ activeMark = null; lastRange = null; _render(r); if (r && r.ok) paint(); else showBar(); };
+})();
+</script>
+
+<script>
+/* ===================== 장 전체 보기 (개역한글) ===================== */
+(function(){
+  var BOOKS = ["창세기", "출애굽기", "레위기", "민수기", "신명기", "여호수아", "사사기", "룻기", "사무엘상", "사무엘하", "열왕기상", "열왕기하", "역대상", "역대하", "에스라", "느헤미야", "에스더", "욥기", "시편", "잠언", "전도서", "아가", "이사야", "예레미야", "예레미야애가", "에스겔", "다니엘", "호세아", "요엘", "아모스", "오바댜", "요나", "미가", "나훔", "하박국", "스바냐", "학개", "스가랴", "말라기", "마태복음", "마가복음", "누가복음", "요한복음", "사도행전", "로마서", "고린도전서", "고린도후서", "갈라디아서", "에베소서", "빌립보서", "골로새서", "데살로니가전서", "데살로니가후서", "디모데전서", "디모데후서", "디도서", "빌레몬서", "히브리서", "야고보서", "베드로전서", "베드로후서", "요한일서", "요한이서", "요한삼서", "유다서", "요한계시록"];
+  var BSK = 'gen,exo,lev,num,deu,jos,jdg,rut,1sa,2sa,1ki,2ki,1ch,2ch,ezr,neh,est,job,psa,pro,ecc,sng,isa,jer,lam,ezk,dan,hos,jol,amo,oba,jnh,mic,nam,hab,zep,hag,zec,mal,mat,mrk,luk,jhn,act,rom,1co,2co,gal,eph,php,col,1th,2th,1ti,2ti,tit,phm,heb,jas,1pe,2pe,1jn,2jn,3jn,jud,rev'.split(',');
+  function gaeUrl(book, ch){ return 'https://www.bskorea.or.kr/bible/korbibReadpage.php?version=GAE&book=' + BSK[book - 1] + '&chap=' + ch; }
+  var byLen = BOOKS.map(function(n, i){ return { n:n, i:i + 1 }; }).sort(function(a, b){ return b.n.length - a.n.length; });
+  var cacheB = {}, chap = null;
+
+  /* "예레미야 44장 18, 23절" → { book:24, ch:44, verses:[18,23] } */
+  function parseRef(t){
+    t = String(t || '').trim();
+    var b = null;
+    for (var k = 0; k < byLen.length; k++) if (t.indexOf(byLen[k].n) === 0) { b = byLen[k]; break; }
+    if (!b) return null;
+    var m = t.slice(b.n.length).match(/^\s*(\d+)\s*[장편]\s*(.*)$/);
+    if (!m) return null;
+    var vs = [];
+    m[2].replace(/절/g, '').split(/[,，]/).forEach(function(part){
+      var r = part.trim().match(/^(\d+)\s*(?:[-–~]\s*(\d+))?$/);
+      if (!r) return;
+      var a = Number(r[1]), z = r[2] ? Number(r[2]) : a;
+      for (var v = a; v <= z && v - a < 200; v++) vs.push(v);
+    });
+    return { book: b.i, name: b.n, ch: Number(m[1]), verses: vs };
+  }
+  function loadBook(n){
+    if (cacheB[n]) return Promise.resolve(cacheB[n]);
+    return fetch('bible/' + n + '.json').then(function(r){ if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function(j){ cacheB[n] = j; return j; });
+  }
+  function showChapter(book, ch, verses){
+    chap = { book: book, ch: ch, verses: verses || [] };
+    document.body.classList.add('chapter');
+    var m = document.getElementById('main');
+    m.innerHTML = '<div class="st">불러오는 중…</div>';
+    document.getElementById('copy').disabled = true;
+    window.scrollTo(0, 0);
+    loadBook(book).then(function(B){
+      if (!chap || chap.book !== book || chap.ch !== ch) return;
+      var vs = B.chapters[ch - 1] || [], on = {};
+      chap.verses.forEach(function(v){ on[v] = 1; });
+      var h = '<button class="chap-back" id="chapBack">‹ 오늘 묵상으로</button>' +
+        '<p class="ref">개역한글</p><h1>' + esc(B.name + ' ' + ch + (book === 19 ? '편' : '장')) + '</h1>' +
+        '<a class="gae" href="' + gaeUrl(book, ch) + '" target="_blank" rel="noopener">개역개정으로 보기 (대한성서공회) ↗</a>' +
+        vs.map(function(t, i){ return t ? '<p class="cv' + (on[i + 1] ? ' on' : '') + '" id="cv' + (i + 1) + '"><sup>' + (i + 1) + '</sup>' + esc(t) + '</p>' : ''; }).join('') +
+        '<div class="chap-nav"><button id="chapPrev"' + (ch <= 1 ? ' disabled' : '') + '>‹ ' + (ch - 1) + (book === 19 ? '편' : '장') + '</button>' +
+        '<button id="chapNext"' + (ch >= B.chapters.length ? ' disabled' : '') + '>' + (ch + 1) + (book === 19 ? '편' : '장') + ' ›</button></div>' +
+        '<a class="gae wide" href="' + gaeUrl(book, ch) + '" target="_blank" rel="noopener">이 장을 개역개정으로 보기 ↗</a>' +
+        '<div class="src">' + esc(B.source) + '</div>';
+      m.innerHTML = h;
+      document.getElementById('chapBack').onclick = closeChapter;
+      document.getElementById('chapPrev').onclick = function(){ openChapter(book, ch - 1, []); };
+      document.getElementById('chapNext').onclick = function(){ openChapter(book, ch + 1, []); };
+      var first = chap.verses.length ? document.getElementById('cv' + chap.verses[0]) : null;
+      if (first) setTimeout(function(){ first.scrollIntoView({ block:'center' }); }, 60);
+    }).catch(function(){
+      m.innerHTML = '<div class="st">📖<br>성경 본문을 불러오지 못했어요.<br><br><button class="btn" style="max-width:200px" id="chapBack">‹ 오늘 묵상으로</button></div>';
+      document.getElementById('chapBack').onclick = closeChapter;
+    });
+  }
+  function openChapter(book, ch, verses){
+    var h = 'ch-' + book + '-' + ch + (verses && verses.length ? '-' + verses.join('.') : '');
+    if (location.hash.slice(1) === h) showChapter(book, ch, verses); else location.hash = h;
+  }
+  function closeChapter(){
+    if (/^#ch-/.test(location.hash)) {
+      if (history.length > 1 && window.__rbFromDay) { history.back(); return; }
+      history.replaceState(null, '', location.pathname + location.search);
+    }
+    leave();
+  }
+  function leave(){ chap = null; document.body.classList.remove('chapter'); go(current || todayStr); }
+  function route(){
+    var m = location.hash.match(/^#ch-(\d+)-(\d+)(?:-([\d.]+))?$/);
+    if (m) { history.replaceState(null, '', location.pathname + location.search); location.href = gaeUrl(Number(m[1]), Number(m[2])); return; }
+    else if (chap) leave();
+  }
+  window.addEventListener('hashchange', route);
+  window.rbChapterMode = function(){ return !!chap; };
+  window.rbParseRef = parseRef;
+  window.rbChapterStep = function(d){ if (!chap) return false; loadBook(chap.book).then(function(B){ var c = chap.ch + d; if (c >= 1 && c <= B.chapters.length) openChapter(chap.book, c, []); }); return true; };
+
+  /* 묵상 화면 제목(본문 구절)을 누르면 장 전체로 */
+  var _render2 = render;
+  /* 날짜를 옮기면 장 화면에서 나와 묵상 화면으로 */
+  var _go2 = go;
+  go = function(ds){
+    if (chap) { chap = null; document.body.classList.remove('chapter'); if (/^#ch-/.test(location.hash)) history.replaceState(null, '', location.pathname + location.search); }
+    return _go2(ds);
+  };
+  render = function(r){
+    if (chap) return;   /* 장 화면을 보는 중이면 묵상 화면으로 덮어쓰지 않음 */
+    _render2(r);
+    if (!r || !r.ok) return;
+    var ref = parseRef(r.passage), h1 = document.querySelector('#main h1');
+    if (!ref || !h1) return;
+    h1.classList.add('linked');
+    var url = gaeUrl(ref.book, ref.ch);
+    h1.insertAdjacentHTML('beforeend', '<a class="more" id="gaeLink" href="' + url + '" target="_blank" rel="noopener">' + esc(ref.name + ' ' + ref.ch + (ref.book === 19 ? '편' : '장')) + ' 전체 보기 · 개역개정 ↗</a>');
+    h1.onclick = function(e){ if (e.target.id !== 'gaeLink') document.getElementById('gaeLink').click(); };
+  };
+  /* 처음 열 때 주소에 #ch-… 가 있으면 바로 장 화면 */
+  if (/^#ch-/.test(location.hash)) setTimeout(route, 0);
 })();
 </script>
 </body>
