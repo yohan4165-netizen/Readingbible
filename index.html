@@ -157,7 +157,7 @@
   h1.linked{cursor:pointer}
   h1.linked .more{display:block;text-decoration:none;margin-top:6px;font-size:13px;font-weight:500;color:var(--accent);letter-spacing:.02em}
   .chap-back{display:inline-flex;align-items:center;gap:4px;margin:0 0 14px;padding:8px 14px;border-radius:99px;border:1px solid var(--line);background:var(--paper);color:var(--ink);font-size:14px;cursor:pointer}
-  .cv{font-size:calc(var(--fs) + 1px);line-height:1.9;margin:0 0 .55em;text-align:justify;text-justify:inter-word; letter-spacing:normal;word-break:keep-all;overflow-wrap:break-word}
+  .cv{font-size:calc(var(--fs) + 1px);line-height:1.9;margin:0 0 .55em;text-align:left; letter-spacing:normal; word-spacing:normal;word-break:keep-all;overflow-wrap:break-word}
   .cv sup{font-size:.62em;color:var(--accent);font-weight:700;margin-right:6px;vertical-align:.45em}
   .cv.on{background:var(--accent-soft);border-radius:10px;padding:6px 12px;margin-left:-12px;margin-right:-12px}
   .chap-nav{display:flex;justify-content:space-between;gap:10px;margin:26px 0 8px}
@@ -189,9 +189,9 @@
   body.typing #hlbar{display:none !important}
   /* 가운데 정렬 */
   .ref, h1 { text-align:center; }
-  .verse { text-align:justify; text-justify:inter-word; letter-spacing:normal; word-break:keep-all; overflow-wrap:break-word; line-break:strict; font-size:var(--fs) !important; }
+  .verse { text-align:left; letter-spacing:normal; word-spacing:normal; word-break:keep-all; overflow-wrap:break-word; line-break:strict; font-size:var(--fs) !important; }
   .verses { padding:16px 16px 16px 18px !important; }
-  .body p { text-align:justify; text-justify:inter-word; letter-spacing:normal; text-indent:.6em; word-break:keep-all; overflow-wrap:break-word; line-break:strict; }
+  .body p { text-align:left; letter-spacing:normal; word-spacing:normal; text-indent:.6em; word-break:keep-all; overflow-wrap:break-word; line-break:strict; }
   .question { text-align:center; }
   /* ===== 글꼴: 맑은 고딕 / 본문 좌우 여백 ===== */
   body, body *:not(svg):not(path) { font-family:"Malgun Gothic","맑은 고딕","Apple SD Gothic Neo","Noto Sans KR",sans-serif !important; }
